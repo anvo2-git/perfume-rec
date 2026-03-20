@@ -18,6 +18,7 @@ Perfumes are described in two distinct vocabularies that are easy to conflate.
 This distinction turns out to be statistically significant and was the backbone of our recommender system.
 
 Upon spritzing a perfume, we attempt to find 'anchors' in our minds of what the perfume smells like. These different anchors are then usually formalised as 'accords', which, broadly speaking, is our attempt of grouping up synergistic and similar notes into one coherent olfactory experience. For example, most fruity notes, regardless of the specific kind of fruits, get labelled as 'fruity'. A perfume that smells like predominantly strawberries or lychees both end up being 'fruity'. Gardenia, jasmine and angelica usually become 'white florals'. Once an anchor (accord) is figured out, we move onto the next ('this perfume smells fruity *and* powdery'), attempting to locate the next grouping of note that produces a different olfactory experience while 'skipping over' all the notes that make up the accord we just finished processing. 
+
 ---
 
 ## What the System Does
