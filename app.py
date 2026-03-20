@@ -268,10 +268,8 @@ st.markdown('<div class="site-title">The Common Nose</div>', unsafe_allow_html=T
 st.markdown('<div class="site-subtitle">Tell us your 3 favourite perfumes.</div>', unsafe_allow_html=True)
 st.markdown("""
 <p class="intro-text">
-Search for up to three perfumes you love. We'll analyse their accord profiles —
-the olfactory building blocks that define how a fragrance smells — and find you
-similar fragrances from a catalogue of 68,000 perfumes.
-No ratings. No popularity bias. Just scent.
+Search for up to three perfumes you love. We'll analyse their accord profiles and find you
+similar fragrances from a catalogue of 68,000 perfumes. Let's all smell great together!
 </p>
 """, unsafe_allow_html=True)
 
@@ -286,7 +284,7 @@ if query:
     if results:
         names_list = [r[1].replace(df.iloc[r[0]]['Gender'] if pd.notna(df.iloc[r[0]]['Gender']) else '', '').strip()
                       for r in results]
-        choice = st.radio("Select the perfume you mean:", names_list, key="radio_choice", label_visibility="visible")
+        choice = st.radio("Select the perfume you meant:", names_list, key="radio_choice", label_visibility="visible")
         chosen_idx = results[names_list.index(choice)][0]
 
         render_card(chosen_idx)
@@ -320,7 +318,7 @@ if st.session_state.favourites:
             st.session_state.recs = None
             st.rerun()
     with col2:
-        if st.button("Find similar perfumes →", type="primary"):
+        if st.button("Find similar perfumes", type="primary"):
             liked_ids = [f[0] for f in st.session_state.favourites]
             st.session_state.recs = recommend_grouped(liked_ids, k=10)
             st.rerun()
