@@ -3,7 +3,7 @@
 
 A content-based recommendation system built on 68,000 fragrances from Fragrantica. Tell it three perfumes you love. It will find you similar ones using accord-based vector similarity filtered by a learned accord compatibility matrix, with no ratings and no popularity bias.
 
-**Live demo:** [soon]
+**Live demo:** [the-common-nose.streamlit.app](https://the-common-nose.streamlit.app/)
 
 ---
 
