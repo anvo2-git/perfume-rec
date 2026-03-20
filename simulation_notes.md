@@ -2,13 +2,13 @@
 
 ## Abstract
 
-No publicly available dataset provides user-level perfume ratings that map cleanly to the Fragrantica catalog used in this project. This section documents the design, parameter selection, validation, and limitations of the synthetic interaction data used to evaluate the collaborative filtering component of this system. All evaluation metrics derived from this data should be interpreted as internal consistency measures, not estimates of real-world recommendation quality.
+No publicly available dataset provides user-level perfume ratings that map cleanly to the Fragrantica catalog used in this project. We look to documents the design, parameter selection, validation, and limitations of the synthetic interaction data used to evaluate the collaborative filtering component of this system. All evaluation metrics derived from this data should be interpreted as internal consistency measures, not estimates of real-world recommendation quality.
 
 ---
 
 ## 1. Motivation
 
-Collaborative filtering requires a user-item rating matrix $R \in \mathbb{R}^{U \times I}$ where $R_{ui}$ represents the rating given by user $u$ to item $i$. The Fragrantica dataset provides only aggregate statistics per perfume (mean rating, rating count) — no individual user identifiers or per-user ratings are available. Alternatives were investigated and rejected:
+Collaborative filtering requires a user-item rating matrix $R \in \mathbb{R}^{U \times I}$ where $R_{ui}$ represents the rating given by user $u$ to item $i$. The Fragrantica dataset provides only aggregate statistics per perfume (mean rating, rating count). No individual user identifiers or per-user ratings are available. Alternatives were investigated and rejected:
 
 - **Amazon Beauty Reviews (McAuley Lab, 2023):** 701,528 reviews across 112,590 products. After filtering to fragrance-specific products, 4,667 candidates remained. Fuzzy name matching against the Fragrantica catalog yielded an estimated overlap of 10–15% (~500–700 perfumes), representing 2% of the catalog. Coverage was deemed insufficient for meaningful collaborative filtering evaluation.
 
@@ -30,7 +30,7 @@ where $s(u)$ is a seed perfume drawn with probability proportional to rating cou
 
 $$P(s(u) = i) = \frac{\text{RatingCount}_i}{\sum_{j=1}^{I} \text{RatingCount}_j}$$
 
-This reflects the empirical observation that popular perfumes have higher real-world exposure — users are more likely to have encountered and formed preferences around widely available fragrances.
+This reflects the empirical observation that popular perfumes have higher real-world exposure: users are more likely to have encountered and formed preferences around widely available fragrances.
 
 ### 2.2 Affinity Scoring
 
@@ -50,7 +50,7 @@ The threshold $\rho$ reflects the fact that users predominantly rate perfumes th
 
 ### 2.4 Rating Assignment
 
-Raw cosine similarities in high-dimensional sparse binary space cluster tightly in the range $[0.35, 0.55]$. Direct linear scaling to a 1–5 rating scale produces a severely compressed distribution (mean $\approx 1.97$, std $\approx 0.22$) inconsistent with any known review platform. A rank-based assignment was adopted instead, mapping each user's within-user similarity rank to a rating according to the empirical J-curve distribution of Amazon Beauty ratings:
+Raw cosine similarities in high-dimensional sparse binary space cluster tightly in the range $[0.35, 0.55]$. Direct linear scaling to a 1–5 rating scale produces a **very** compressed distribution (mean $\approx 1.97$, std $\approx 0.22$) inconsistent with any known review platform. A rank-based assignment was adopted instead, mapping each user's within-user similarity rank to a rating according to the empirical J-curve distribution of Amazon Beauty ratings:
 
 | Rank Percentile | Rating | Amazon Beauty Frequency |
 |---|---|---|
@@ -85,8 +85,8 @@ Parameters were tuned iteratively to minimise divergence between the simulated a
 | Ratings/user median | 1 | 2 | Acceptable |
 | Ratings/user mean | 1.1 | 3.4 | Slightly too high |
 | Ratings/item median | 2 | 1 | Acceptable |
-| Ratings/item mean | 6.1 | 1.5 | Too low — see §4 |
-| Gini coefficient | 0.692 | 0.269 | Structurally limited — see §4 |
+| Ratings/item mean | 6.1 | 1.5 | Too low! Explained below |
+| Gini coefficient | 0.692 | 0.269 | Too low, also explained below |
 | Sparsity | 0.0010% | 0.0751% | 75× denser than target |
 
 ---
@@ -94,19 +94,20 @@ Parameters were tuned iteratively to minimise divergence between the simulated a
 ## 4. Limitations
 
 ### 4.1 Circularity
-The simulation generates ratings from note-space cosine similarity. The content-based recommender being evaluated also uses note-space cosine similarity. Evaluating the recommender against these ratings therefore partially measures whether the model recovers its own generating process. Precision@K and Recall@K numbers should be treated as **consistency metrics** — they confirm internal coherence, not real-world performance.
+The simulation generates ratings from note-space cosine similarity. The first four evaluated models also operate in note space, making those evaluations circular, partially measuring whether each model recovers its own generating process. As a result, their absolute MRR numbers should be treated as internal consistency metrics rather than estimates of real-world performance.
+However, this circularity cuts in a specific direction: the simulation was generated in note space, which structurally favours note-based models. The final accord-based recommender operates in a different feature space entirely, meaning it receives no such advantage. Its 20× MRR improvement over the popularity baseline and 2.4× improvement over the best note-based model (TF-IDF, MRR = 0.0076) is therefore a conservative lower bound. Despite the evaluation being tilted against it, it still won. This is stronger evidence for the accord feature space than a purpose-built accord simulation would have provided.
 
 ### 4.2 Gini Coefficient Gap
-The simulated item rating distribution has Gini coefficient 0.269, compared to 0.692 for Amazon Beauty. This reflects a fundamental structural constraint: achieving Gini $\approx 0.69$ with $U = 5{,}000$ users requires the top 1% of items (240 perfumes) to hold ~50% of all ratings. Under popularity-weighted seed sampling, interaction concentration improves but remains far below the target. Reproducing Amazon-level Gini would require $U \approx 600{,}000$ users, which implies a $(600k \times 24k)$ similarity matrix of approximately 228 GB — computationally infeasible without distributed infrastructure. The practical consequence is that the severity of the cold-start problem is **underestimated** in this evaluation: niche perfumes receive proportionally more simulated interactions than they would in a real deployment.
+The simulated item  rating distribution has Gini coefficient 0.269, compared to 0.692 for Amazon Beauty. This reflects a fundamental structural constraint: achieving Gini $\approx 0.69$ with $U = 5{,}000$ users requires the top 1% of items (240 perfumes) to hold ~50% of all ratings. Under popularity-weighted seed sampling, interaction concentration improves but remains far below the target. Reproducing Amazon-level Gini would require $U \approx 600{,}000$ users, which implies a $(600k \times 24k)$ similarity matrix of approximately 228 GB. This is not feasible without advanced systems. The practical consequence is that the severity of the cold-start problem is **underestimated** in this evaluation: niche perfumes receive proportionally more simulated interactions than they would in a real deployment.
 
 ### 4.3 Single-Seed User Model
-Each user is modelled as a Gaussian perturbation around a single seed perfume. Real users may have multimodal preferences — enjoying both clean aquatics and heavy orientals, for example — which a unimodal Gaussian in note space cannot represent.
+Each user is modelled as a Gaussian perturbation around a single seed perfume. Real users may have multimodal preferences (I know I do!). That is, they enjoy both clean aquatics and heavy orientals.
 
 ### 4.4 Missing Quality Signal
 The item's aggregate Rating Value (mean score across all real raters) was not incorporated into the generative model. A perfume rated 4.8 by thousands of users is not treated differently from one rated 3.1. This omits a real signal: some perfumes are more broadly well-executed independent of note composition.
 
 ### 4.5 Static Preferences
-The model assumes time-invariant user preferences. Real preference evolution — seasonal shifts, growing sophistication, trend effects — is not captured.
+The model assumes time-invariant user preferences. Real preference evolution is not modelled. Common preference evolution includes shifts between seasons, change in taste due to discovery or perfume fatigue, etc.
 
 ---
 
